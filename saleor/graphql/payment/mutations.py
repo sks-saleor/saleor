@@ -1850,13 +1850,13 @@ class PaymentGatewayInitialize(TransactionSessionBase):
                     "Active app with `HANDLE_PAYMENT` permissions or "
                     "app webhook not found."
                 )
-                errors = [
-                    {
-                        "field": "id",
-                        "message": msg,
-                        "code": code,
-                    }
-                ]
+                # errors = [
+                #     {
+                #         "field": "id",
+                #         "message": msg,
+                #         "code": code,
+                #     }
+                # ]
             data_to_return = response_data.get("data") if response_data else None
             response.append(
                 PaymentGatewayConfig(
@@ -1877,6 +1877,7 @@ class PaymentGatewayInitialize(TransactionSessionBase):
             discounts=discounts,
             manager=manager,
         )
+        print('payment_gateways:::: ', payment_gateways)
         payment_gateways_data = []
         if payment_gateways:
             payment_gateways_data = [
