@@ -14,7 +14,7 @@ from .....checkout.error_codes import OrderCreateFromCheckoutErrorCode
 from .....checkout.fetch import fetch_checkout_info, fetch_checkout_lines
 from .....checkout.models import Checkout
 from .....core.taxes import TaxError, zero_money, zero_taxed_money
-from .....discount import OrderDiscountType
+from .....discount import DiscountType
 from .....giftcard import GiftCardEvents
 from .....giftcard.models import GiftCard, GiftCardEvent
 from .....order import OrderOrigin, OrderStatus
@@ -141,7 +141,7 @@ def test_order_from_checkout(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
     total = calculations.calculate_checkout_total_with_gift_cards(
         manager, checkout_info, lines, address
     )
@@ -324,13 +324,86 @@ def test_order_from_checkout_with_metadata(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
     total = calculations.calculate_checkout_total_with_gift_cards(
         manager, checkout_info, lines, address
     )
     channel = checkout.channel
     channel.automatically_confirm_all_new_orders = True
     channel.save()
+
+    orders_count = Order.objects.count()
+    variables = {
+        "id": graphene.Node.to_global_id("Checkout", checkout.pk),
+        "metadata": [{"key": metadata_key, "value": metadata_value}],
+        "privateMetadata": [{"key": metadata_key, "value": metadata_value}],
+    }
+
+    # when
+    response = app_api_client.post_graphql(
+        MUTATION_ORDER_CREATE_FROM_CHECKOUT,
+        variables,
+        permissions=[permission_handle_checkouts, permission_manage_checkouts],
+    )
+
+    content = get_graphql_content(response)
+    data = content["data"]["orderCreateFromCheckout"]
+    assert not data["errors"]
+
+    order_token = data["order"]["token"]
+    assert Order.objects.count() == orders_count + 1
+    order = Order.objects.first()
+    assert order.status == OrderStatus.UNCONFIRMED
+    assert order.origin == OrderOrigin.CHECKOUT
+    assert not order.original
+    assert str(order.pk) == order_token
+    assert order.total.gross == total.gross
+    assert order.metadata == {
+        **checkout.metadata_storage.metadata,
+        **{metadata_key: metadata_value},
+    }
+    assert order.private_metadata == {
+        **checkout.metadata_storage.private_metadata,
+        **{metadata_key: metadata_value},
+    }
+    order_confirmed_mock.assert_called_once_with(order)
+
+
+@pytest.mark.integration
+@patch("saleor.plugins.manager.PluginsManager.order_confirmed")
+def test_order_from_checkout_with_metadata_checkout_without_metadata(
+    order_confirmed_mock,
+    app_api_client,
+    permission_handle_checkouts,
+    permission_manage_checkouts,
+    site_settings,
+    checkout_with_gift_card,
+    gift_card,
+    address,
+    shipping_method,
+):
+    # given
+    checkout = checkout_with_gift_card
+    checkout.shipping_address = address
+    checkout.shipping_method = shipping_method
+    checkout.billing_address = address
+    checkout.save()
+
+    metadata_key = "md key"
+    metadata_value = "md value"
+
+    manager = get_plugins_manager()
+    lines, _ = fetch_checkout_lines(checkout)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
+    total = calculations.calculate_checkout_total_with_gift_cards(
+        manager, checkout_info, lines, address
+    )
+    channel = checkout.channel
+    channel.automatically_confirm_all_new_orders = True
+    channel.save()
+
+    # delete the current metadata
+    checkout.metadata_storage.delete()
 
     orders_count = Order.objects.count()
     variables = {
@@ -423,7 +496,7 @@ def test_order_from_checkout_gift_card_bought(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
 
     amount = calculations.calculate_checkout_total_with_gift_cards(
         manager, checkout_info, lines, address
@@ -682,13 +755,14 @@ def test_order_from_checkout_with_voucher(
     assert str(order.pk) == order_token
     assert order.metadata == checkout.metadata_storage.metadata
     assert order.private_metadata == checkout.metadata_storage.private_metadata
+    assert order.total_gross_amount < order.undiscounted_total_gross_amount
 
     order_line = order.lines.first()
     assert checkout_line_quantity == order_line.quantity
     assert checkout_line_variant == order_line.variant
     assert order.shipping_address == address
     assert order.shipping_method == checkout.shipping_method
-    order_discount = order.discounts.filter(type=OrderDiscountType.VOUCHER).first()
+    order_discount = order.discounts.filter(type=DiscountType.VOUCHER).first()
     assert order_discount
     assert (
         order_discount.amount_value
@@ -764,7 +838,7 @@ def test_order_from_checkout_with_voucher_apply_once_per_order(
     assert checkout_line_variant == order_line.variant
     assert order.shipping_address == address
     assert order.shipping_method == checkout.shipping_method
-    order_discount = order.discounts.filter(type=OrderDiscountType.VOUCHER).first()
+    order_discount = order.discounts.filter(type=DiscountType.VOUCHER).first()
     assert order_discount
     assert (
         order_discount.amount_value
@@ -827,7 +901,7 @@ def test_order_from_checkout_with_specific_product_voucher(
     assert checkout_line_variant == order_line.variant
     assert order.shipping_address == address
     assert order.shipping_method == checkout.shipping_method
-    order_discount = order.discounts.filter(type=OrderDiscountType.VOUCHER).first()
+    order_discount = order.discounts.filter(type=DiscountType.VOUCHER).first()
     assert order_discount
     assert (
         order_discount.amount_value
@@ -901,7 +975,7 @@ def test_order_from_checkout_without_inventory_tracking(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
     total = calculations.checkout_total(
         manager=manager, checkout_info=checkout_info, lines=lines, address=address
     )
@@ -1176,7 +1250,7 @@ def test_order_from_checkout_0_total_value(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
     total = calculations.checkout_total(
         manager=manager, checkout_info=checkout_info, lines=lines, address=address
     )
@@ -1389,7 +1463,7 @@ def test_order_from_checkout_raises_invalid_shipping_method_when_warehouse_disab
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
 
     assert not checkout_info.valid_pick_up_points
     assert not checkout_info.delivery_method_info.is_method_in_valid_methods(
@@ -1431,7 +1505,7 @@ def test_order_from_draft_create_with_preorder_variant(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
     total = calculations.calculate_checkout_total_with_gift_cards(
         manager, checkout_info, lines, address
     )
@@ -1519,7 +1593,7 @@ def test_order_from_draft_create_click_collect_preorder_fails_for_disabled_wareh
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
 
     assert not checkout_info.valid_pick_up_points
     assert not checkout_info.delivery_method_info.is_method_in_valid_methods(
@@ -1791,7 +1865,7 @@ def test_order_from_draft_create_0_total_value_from_voucher(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
     total = calculations.calculate_checkout_total_with_gift_cards(
         manager=manager, checkout_info=checkout_info, lines=lines, address=address
     )
@@ -1852,7 +1926,7 @@ def test_order_from_draft_create_0_total_value_from_giftcard(
 
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout, lines, manager)
     total = calculations.calculate_checkout_total_with_gift_cards(
         manager=manager, checkout_info=checkout_info, lines=lines, address=address
     )

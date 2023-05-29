@@ -38,11 +38,7 @@ from ..attribute.models import (
 )
 from ..attribute.utils import associate_attribute_values_to_instance
 from ..checkout import base_calculations
-from ..checkout.fetch import (
-    fetch_active_discounts,
-    fetch_checkout_info,
-    fetch_checkout_lines,
-)
+from ..checkout.fetch import fetch_checkout_info, fetch_checkout_lines
 from ..checkout.models import Checkout, CheckoutLine, CheckoutMetadata
 from ..checkout.utils import add_variant_to_checkout, add_voucher_to_checkout
 from ..core import EventDeliveryStatus, JobStatus
@@ -311,7 +307,7 @@ def checkout_JPY(channel_JPY):
 @pytest.fixture
 def checkout_with_item(checkout, product):
     variant = product.variants.first()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 3)
     checkout.save()
     return checkout
@@ -341,7 +337,7 @@ def checkout_with_item_and_tax_exemption(checkout_with_item):
 @pytest.fixture
 def checkout_with_same_items_in_multiple_lines(checkout, product):
     variant = product.variants.first()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 1)
     add_variant_to_checkout(checkout_info, variant, 1, force_new_line=True)
     checkout.save()
@@ -354,7 +350,7 @@ def checkout_with_item_and_voucher_specific_products(
 ):
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout_with_item)
-    checkout_info = fetch_checkout_info(checkout_with_item, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout_with_item, lines, manager)
     add_voucher_to_checkout(
         manager, checkout_info, lines, voucher_specific_product_type
     )
@@ -368,7 +364,7 @@ def checkout_with_item_and_voucher_once_per_order(checkout_with_item, voucher):
     voucher.save()
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout_with_item)
-    checkout_info = fetch_checkout_info(checkout_with_item, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout_with_item, lines, manager)
     add_voucher_to_checkout(manager, checkout_info, lines, voucher)
     checkout_with_item.refresh_from_db()
     return checkout_with_item
@@ -378,7 +374,7 @@ def checkout_with_item_and_voucher_once_per_order(checkout_with_item, voucher):
 def checkout_with_item_and_voucher(checkout_with_item, voucher):
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout_with_item)
-    checkout_info = fetch_checkout_info(checkout_with_item, lines, [], manager)
+    checkout_info = fetch_checkout_info(checkout_with_item, lines, manager)
     add_voucher_to_checkout(manager, checkout_info, lines, voucher)
     checkout_with_item.refresh_from_db()
     return checkout_with_item
@@ -392,7 +388,7 @@ def checkout_line(checkout_with_item):
 @pytest.fixture
 def checkout_with_item_total_0(checkout, product_price_0):
     variant = product_price_0.variants.get()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 1)
     checkout.save()
     return checkout
@@ -401,7 +397,7 @@ def checkout_with_item_total_0(checkout, product_price_0):
 @pytest.fixture
 def checkout_JPY_with_item(checkout_JPY, product_in_channel_JPY):
     variant = product_in_channel_JPY.variants.get()
-    checkout_info = fetch_checkout_info(checkout_JPY, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout_JPY, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 3)
     checkout_JPY.save()
     return checkout_JPY
@@ -463,7 +459,7 @@ def checkout_ready_to_complete(checkout_with_item, address, shipping_method, gif
 def checkout_with_digital_item(checkout, digital_content, address):
     """Create a checkout with a digital line."""
     variant = digital_content.product_variant
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 1)
     checkout.discount_amount = Decimal(0)
     checkout.billing_address = address
@@ -476,7 +472,7 @@ def checkout_with_digital_item(checkout, digital_content, address):
 def checkout_with_shipping_required(checkout_with_item, product):
     checkout = checkout_with_item
     variant = product.variants.get()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 3)
     checkout.save()
     return checkout
@@ -509,7 +505,7 @@ def other_shipping_method(shipping_zone, channel_USD):
 @pytest.fixture
 def checkout_without_shipping_required(checkout, product_without_shipping):
     variant = product_without_shipping.variants.get()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 1)
     checkout.save()
     return checkout
@@ -518,7 +514,7 @@ def checkout_without_shipping_required(checkout, product_without_shipping):
 @pytest.fixture
 def checkout_with_single_item(checkout, product):
     variant = product.variants.get()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 1)
     checkout.save()
     return checkout
@@ -529,7 +525,7 @@ def checkout_with_variant_without_inventory_tracking(
     checkout, variant_without_inventory_tracking, address, shipping_method
 ):
     variant = variant_without_inventory_tracking
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 1)
     checkout.shipping_address = address
     checkout.shipping_method = shipping_method
@@ -551,7 +547,7 @@ def checkout_with_variants(
     product_with_single_variant,
     product_with_two_variants,
 ):
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
 
     add_variant_to_checkout(
         checkout_info, product_with_default_variant.variants.get(), 1
@@ -620,7 +616,7 @@ def checkout_with_shipping_address_for_cc(checkout_with_variants_for_cc, address
 @pytest.fixture
 def checkout_with_items(checkout, product_list, product):
     variant = product.variants.get()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 1)
     for prod in product_list:
         variant = prod.variants.get()
@@ -642,7 +638,7 @@ def checkout_with_items_and_shipping(checkout_with_items, address, shipping_meth
 @pytest.fixture
 def checkout_with_voucher(checkout, product, voucher):
     variant = product.variants.get()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 3)
     checkout.voucher_code = voucher.code
     checkout.discount = Money("20.00", "USD")
@@ -653,7 +649,7 @@ def checkout_with_voucher(checkout, product, voucher):
 @pytest.fixture
 def checkout_with_voucher_percentage(checkout, product, voucher_percentage):
     variant = product.variants.get()
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, variant, 3)
     checkout.voucher_code = voucher_percentage.code
     checkout.discount = Money("3.00", "USD")
@@ -668,9 +664,9 @@ def checkout_with_voucher_free_shipping(
     manager = get_plugins_manager()
     lines, _ = fetch_checkout_lines(checkout_with_items_and_shipping)
     checkout_info = fetch_checkout_info(
-        checkout_with_items_and_shipping, lines, [], manager
+        checkout_with_items_and_shipping, lines, manager
     )
-    add_voucher_to_checkout(manager, checkout_info, lines, voucher_free_shipping, [])
+    add_voucher_to_checkout(manager, checkout_info, lines, voucher_free_shipping)
     return checkout_with_items_and_shipping
 
 
@@ -689,7 +685,7 @@ def checkout_with_preorders_only(
     preorder_variant_channel_threshold,
 ):
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, lines, get_plugins_manager())
     add_variant_to_checkout(checkout_info, preorder_variant_with_end_date, 2)
     add_variant_to_checkout(checkout_info, preorder_variant_channel_threshold, 2)
 
@@ -702,7 +698,7 @@ def checkout_with_preorders_and_regular_variant(
     checkout, stocks_for_cc, preorder_variant_with_end_date, product_variant_list
 ):
     lines, _ = fetch_checkout_lines(checkout)
-    checkout_info = fetch_checkout_info(checkout, lines, [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, lines, get_plugins_manager())
     add_variant_to_checkout(checkout_info, preorder_variant_with_end_date, 2)
     add_variant_to_checkout(checkout_info, product_variant_list[0], 2)
 
@@ -714,7 +710,7 @@ def checkout_with_preorders_and_regular_variant(
 def checkout_with_gift_card_items(
     checkout, non_shippable_gift_card_product, shippable_gift_card_product
 ):
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     non_shippable_variant = non_shippable_gift_card_product.variants.get()
     shippable_variant = shippable_gift_card_product.variants.get()
     add_variant_to_checkout(checkout_info, non_shippable_variant, 1)
@@ -753,9 +749,7 @@ def checkout_with_payments(checkout):
 def checkout_with_item_and_preorder_item(
     checkout_with_item, product, preorder_variant_channel_threshold
 ):
-    checkout_info = fetch_checkout_info(
-        checkout_with_item, [], [], get_plugins_manager()
-    )
+    checkout_info = fetch_checkout_info(checkout_with_item, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, preorder_variant_channel_threshold, 1)
     return checkout_with_item
 
@@ -930,7 +924,7 @@ def user_checkout_PLN(customer_user, channel_PLN):
 
 @pytest.fixture
 def user_checkout_with_items(user_checkout, product_list):
-    checkout_info = fetch_checkout_info(user_checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(user_checkout, [], get_plugins_manager())
     for product in product_list:
         variant = product.variants.get()
         add_variant_to_checkout(checkout_info, variant, 1)
@@ -940,9 +934,7 @@ def user_checkout_with_items(user_checkout, product_list):
 
 @pytest.fixture
 def user_checkout_with_items_for_cc(user_checkout_for_cc, product_list):
-    checkout_info = fetch_checkout_info(
-        user_checkout_for_cc, [], [], get_plugins_manager()
-    )
+    checkout_info = fetch_checkout_info(user_checkout_for_cc, [], get_plugins_manager())
     for product in product_list:
         variant = product.variants.get()
         add_variant_to_checkout(checkout_info, variant, 1)
@@ -2001,6 +1993,13 @@ def category_with_image(db, image, media_root):  # pylint: disable=W0613
 
 
 @pytest.fixture
+def categories(db):
+    category1 = Category.objects.create(name="Category1", slug="cat1")
+    category2 = Category.objects.create(name="Category2", slug="cat2")
+    return [category1, category2]
+
+
+@pytest.fixture
 def categories_tree(db, product_type, channel_USD):  # pylint: disable=W0613
     parent = Category.objects.create(name="Parent", slug="parent")
     parent.children.create(name="Child", slug="child")
@@ -2081,6 +2080,11 @@ def permission_manage_gift_card():
 @pytest.fixture
 def permission_manage_orders():
     return Permission.objects.get(codename="manage_orders")
+
+
+@pytest.fixture
+def permission_manage_orders_import():
+    return Permission.objects.get(codename="manage_orders_import")
 
 
 @pytest.fixture
@@ -2217,6 +2221,7 @@ def product(product_type, category, warehouse, channel_USD, default_tax_class):
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2256,6 +2261,7 @@ def shippable_gift_card_product(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(100),
+        discounted_price_amount=Decimal(100),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2290,6 +2296,7 @@ def product_price_0(category, warehouse, channel_USD):
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(0),
+        discounted_price_amount=Decimal(0),
         cost_price_amount=Decimal(0),
         currency=channel_USD.currency_code,
     )
@@ -2313,6 +2320,7 @@ def product_in_channel_JPY(product, channel_JPY, warehouse_JPY):
         variant=variant,
         channel=channel_JPY,
         price_amount=Decimal(1200),
+        discounted_price_amount=Decimal(1200),
         cost_price_amount=Decimal(300),
         currency=channel_JPY.currency_code,
     )
@@ -2349,6 +2357,7 @@ def non_shippable_gift_card_product(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(250),
+        discounted_price_amount=Decimal(250),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2390,6 +2399,7 @@ def product_with_rich_text_attribute(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2419,6 +2429,7 @@ def product_available_in_many_channels(product, channel_PLN, channel_USD):
         variant=variant,
         channel=channel_PLN,
         price_amount=Decimal(50),
+        discounted_price_amount=Decimal(50),
         cost_price_amount=Decimal(1),
         currency=channel_PLN.currency_code,
     )
@@ -2445,6 +2456,7 @@ def product_with_single_variant(product_type, category, warehouse, channel_USD):
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(1.99),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2482,6 +2494,7 @@ def product_with_two_variants(product_type, category, warehouse, channel_USD):
             variant=variant,
             channel=channel_USD,
             price_amount=Decimal(10),
+            discounted_price_amount=Decimal(10),
             cost_price_amount=Decimal(1),
             currency=channel_USD.currency_code,
         )
@@ -2540,6 +2553,7 @@ def product_with_variant_with_two_attributes(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2602,6 +2616,7 @@ def product_with_variant_with_external_media(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2652,6 +2667,7 @@ def product_with_variant_with_file_attribute(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2710,6 +2726,7 @@ def product_with_default_variant(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2749,6 +2766,7 @@ def variant_without_inventory_tracking(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2765,6 +2783,7 @@ def variant(product, channel_USD) -> ProductVariant:
         variant=product_variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2799,6 +2818,7 @@ def preorder_variant_global_threshold(product, channel_USD):
         variant=product_variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2814,6 +2834,7 @@ def preorder_variant_channel_threshold(product, channel_USD):
         variant=product_variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
         preorder_quantity_threshold=10,
@@ -2862,6 +2883,7 @@ def preorder_variant_with_end_date(product, channel_USD):
         variant=product_variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2892,6 +2914,7 @@ def gift_card_shippable_variant(shippable_gift_card_product, channel_USD, wareho
         variant=product_variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2913,6 +2936,7 @@ def gift_card_non_shippable_variant(
         variant=product_variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -2941,6 +2965,7 @@ def product_variant_list(product, channel_USD, channel_PLN):
                 channel=channel_USD,
                 cost_price_amount=Decimal(1),
                 price_amount=Decimal(10),
+                discounted_price_amount=Decimal(10),
                 currency=channel_USD.currency_code,
             ),
             ProductVariantChannelListing(
@@ -2948,6 +2973,7 @@ def product_variant_list(product, channel_USD, channel_PLN):
                 channel=channel_USD,
                 cost_price_amount=Decimal(1),
                 price_amount=Decimal(10),
+                discounted_price_amount=Decimal(10),
                 currency=channel_USD.currency_code,
             ),
             ProductVariantChannelListing(
@@ -2955,6 +2981,7 @@ def product_variant_list(product, channel_USD, channel_PLN):
                 channel=channel_PLN,
                 cost_price_amount=Decimal(1),
                 price_amount=Decimal(10),
+                discounted_price_amount=Decimal(10),
                 currency=channel_PLN.currency_code,
             ),
             ProductVariantChannelListing(
@@ -2962,6 +2989,7 @@ def product_variant_list(product, channel_USD, channel_PLN):
                 channel=channel_USD,
                 cost_price_amount=Decimal(1),
                 price_amount=Decimal(10),
+                discounted_price_amount=Decimal(10),
                 currency=channel_USD.currency_code,
             ),
         ]
@@ -2996,6 +3024,7 @@ def product_without_shipping(category, warehouse, channel_USD):
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -3113,6 +3142,7 @@ def product_list(
                 channel=channel_USD,
                 cost_price_amount=Decimal(1),
                 price_amount=Decimal(10),
+                discounted_price_amount=Decimal(10),
                 currency=channel_USD.currency_code,
             ),
             ProductVariantChannelListing(
@@ -3120,6 +3150,7 @@ def product_list(
                 channel=channel_USD,
                 cost_price_amount=Decimal(1),
                 price_amount=Decimal(20),
+                discounted_price_amount=Decimal(20),
                 currency=channel_USD.currency_code,
             ),
             ProductVariantChannelListing(
@@ -3127,6 +3158,7 @@ def product_list(
                 channel=channel_USD,
                 cost_price_amount=Decimal(1),
                 price_amount=Decimal(30),
+                discounted_price_amount=Decimal(30),
                 currency=channel_USD.currency_code,
             ),
         ]
@@ -3412,6 +3444,7 @@ def unavailable_product_with_variant(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -3832,7 +3865,7 @@ def checkout_line_with_one_reservation(
 def checkout_line_with_preorder_item(
     checkout, product, preorder_variant_channel_threshold
 ):
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, preorder_variant_channel_threshold, 1)
     return checkout.lines.last()
 
@@ -3841,7 +3874,7 @@ def checkout_line_with_preorder_item(
 def checkout_line_with_reserved_preorder_item(
     checkout, product, preorder_variant_channel_threshold
 ):
-    checkout_info = fetch_checkout_info(checkout, [], [], get_plugins_manager())
+    checkout_info = fetch_checkout_info(checkout, [], get_plugins_manager())
     add_variant_to_checkout(checkout_info, preorder_variant_channel_threshold, 2)
     checkout_line = checkout.lines.last()
 
@@ -4044,6 +4077,7 @@ def order_with_lines(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -4096,6 +4130,7 @@ def order_with_lines(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(20),
+        discounted_price_amount=Decimal(20),
         cost_price_amount=Decimal(2),
         currency=channel_USD.currency_code,
     )
@@ -4329,6 +4364,7 @@ def order_with_lines_channel_PLN(
         variant=variant,
         channel=channel_PLN,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_PLN.currency_code,
     )
@@ -4380,6 +4416,7 @@ def order_with_lines_channel_PLN(
         variant=variant,
         channel=channel_PLN,
         price_amount=Decimal(20),
+        discounted_price_amount=Decimal(20),
         cost_price_amount=Decimal(2),
         currency=channel_PLN.currency_code,
     )
@@ -4498,6 +4535,7 @@ def order_with_preorder_lines(
         variant=variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
         preorder_quantity_threshold=10,
@@ -5157,6 +5195,41 @@ def published_collection(db, channel_USD):
 
 
 @pytest.fixture
+def published_collections(db, channel_USD):
+    collections = Collection.objects.bulk_create(
+        [
+            Collection(
+                name="Collection1",
+                slug="coll1",
+            ),
+            Collection(
+                name="Collection2",
+                slug="coll2",
+            ),
+            Collection(
+                name="Collection3",
+                slug="coll3",
+            ),
+        ]
+    )
+    CollectionChannelListing.objects.bulk_create(
+        [
+            CollectionChannelListing(
+                channel=channel_USD,
+                collection=collection,
+                is_published=True,
+                published_at=datetime.datetime(
+                    2019, 4, 10, tzinfo=timezone.get_current_timezone()
+                ),
+            )
+            for collection in collections
+        ]
+    )
+
+    return collections
+
+
+@pytest.fixture
 def published_collection_PLN(db, channel_PLN):
     collection = Collection.objects.create(
         name="Collection PLN",
@@ -5537,6 +5610,13 @@ def sale_translation_fr(sale):
 
 
 @pytest.fixture
+def new_sale_translation_fr(new_sale):
+    return SaleTranslation.objects.create(
+        language_code="fr", sale=new_sale, name="French sale name"
+    )
+
+
+@pytest.fixture
 def menu_item_translation_fr(menu_item):
     return MenuItemTranslation.objects.create(
         language_code="fr", menu_item=menu_item, name="French manu item name"
@@ -5786,6 +5866,7 @@ def digital_content(category, media_root, warehouse, channel_USD) -> DigitalCont
         variant=product_variant,
         channel=channel_USD,
         price_amount=Decimal(10),
+        discounted_price_amount=Decimal(10),
         cost_price_amount=Decimal(1),
         currency=channel_USD.currency_code,
     )
@@ -6427,16 +6508,13 @@ def checkout_with_prices(
 
     manager = get_plugins_manager()
     channel = checkout_with_items.channel
-    discounts_info = fetch_active_discounts()
     lines = checkout_with_items.lines.all()
     lines_info, _ = fetch_checkout_lines(checkout_with_items)
-    checkout_info = fetch_checkout_info(
-        checkout_with_items, lines, discounts_info, manager
-    )
+    checkout_info = fetch_checkout_info(checkout_with_items, lines, manager)
 
     for line, line_info in zip(lines, lines_info):
         line.total_price_net_amount = base_calculations.calculate_base_line_total_price(
-            line_info, channel, discounts_info
+            line_info, channel
         ).amount
         line.total_price_gross_amount = line.total_price_net_amount * Decimal("1.230")
 

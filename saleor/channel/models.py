@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.db import models
 from django_countries.fields import CountryField
@@ -35,10 +37,9 @@ class Channel(models.Model):
         null=True,
     )
     expire_orders_after = models.IntegerField(default=None, null=True, blank=True)
-    order_mark_as_paid_strategy = models.CharField(
-        max_length=255,
-        choices=MarkAsPaidStrategy.CHOICES,
-        default=MarkAsPaidStrategy.PAYMENT_FLOW,
+
+    delete_expired_orders_after = models.DurationField(
+        default=timedelta(days=60),
     )
 
     class Meta:

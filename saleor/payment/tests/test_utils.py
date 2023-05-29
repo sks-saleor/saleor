@@ -79,9 +79,7 @@ def test_create_payment_lines_information_order_with_voucher(payment_dummy):
     assert payment_lines_data.voucher_amount == -voucher_amount
 
 
-def get_expected_checkout_payment_lines(
-    manager, checkout_info, lines, address, discounts
-):
+def get_expected_checkout_payment_lines(manager, checkout_info, lines, address):
     expected_payment_lines = []
 
     for line_info in lines:
@@ -90,7 +88,6 @@ def get_expected_checkout_payment_lines(
             lines,
             line_info,
             address,
-            discounts,
         ).gross.amount
         quantity = line_info.line.quantity
         variant_id = line_info.variant.id
@@ -110,7 +107,6 @@ def get_expected_checkout_payment_lines(
         checkout_info=checkout_info,
         lines=lines,
         address=address,
-        discounts=discounts,
     ).gross.amount
 
     return PaymentLinesData(
@@ -131,11 +127,10 @@ def test_create_payment_lines_information_checkout(payment_dummy, checkout_with_
 
     # then
     lines, _ = fetch_checkout_lines(checkout_with_items)
-    discounts = []
-    checkout_info = fetch_checkout_info(checkout_with_items, lines, discounts, manager)
+    checkout_info = fetch_checkout_info(checkout_with_items, lines, manager)
     address = checkout_with_items.shipping_address
     expected_payment_lines = get_expected_checkout_payment_lines(
-        manager, checkout_info, lines, address, discounts
+        manager, checkout_info, lines, address
     )
 
     assert payment_lines == expected_payment_lines
@@ -156,11 +151,10 @@ def test_create_payment_lines_information_checkout_with_voucher(
 
     # then
     lines, _ = fetch_checkout_lines(checkout_with_items)
-    discounts = []
-    checkout_info = fetch_checkout_info(checkout_with_items, lines, discounts, manager)
+    checkout_info = fetch_checkout_info(checkout_with_items, lines, manager)
     address = checkout_with_items.shipping_address
     expected_payment_lines_data = get_expected_checkout_payment_lines(
-        manager, checkout_info, lines, address, discounts
+        manager, checkout_info, lines, address
     )
 
     expected_payment_lines_data.voucher_amount = -voucher_amount
@@ -1177,7 +1171,6 @@ def test_create_transaction_event_for_transaction_session_success_response(
         request_event,
         webhook_app,
         manager=plugins_manager,
-        discounts=[],
         transaction_webhook_response=response,
     )
 
@@ -1219,7 +1212,6 @@ def test_create_transaction_event_for_transaction_session_success_response_with_
         request_event,
         webhook_app,
         manager=plugins_manager,
-        discounts=[],
         transaction_webhook_response=response,
     )
 
@@ -1265,7 +1257,6 @@ def test_create_transaction_event_for_transaction_session_not_success_events(
         request_event,
         webhook_app,
         manager=plugins_manager,
-        discounts=[],
         transaction_webhook_response=response,
     )
 
@@ -1315,7 +1306,6 @@ def test_create_transaction_event_for_transaction_session_missing_psp_reference(
         request_event,
         webhook_app,
         manager=plugins_manager,
-        discounts=[],
         transaction_webhook_response=response,
     )
 
@@ -1361,7 +1351,6 @@ def test_create_transaction_event_for_transaction_session_missing_reference_with
         request_event,
         webhook_app,
         manager=plugins_manager,
-        discounts=[],
         transaction_webhook_response=response,
     )
 
@@ -1408,7 +1397,6 @@ def test_create_transaction_event_for_transaction_session_call_webhook_order_upd
         request_event,
         webhook_app,
         manager=plugins_manager,
-        discounts=[],
         transaction_webhook_response=response,
     )
 
@@ -1444,7 +1432,6 @@ def test_create_transaction_event_for_transaction_session_call_webhook_for_fully
         request_event,
         webhook_app,
         manager=plugins_manager,
-        discounts=[],
         transaction_webhook_response=response,
     )
 
@@ -1453,3 +1440,89 @@ def test_create_transaction_event_for_transaction_session_call_webhook_for_fully
     flush_post_commit_hooks()
     mock_order_fully_paid.assert_called_once_with(order_with_lines)
     mock_order_updated.assert_called_once_with(order_with_lines)
+
+
+@pytest.mark.parametrize(
+    "response_result,",
+    [
+        (TransactionEventType.AUTHORIZATION_REQUEST),
+        (TransactionEventType.AUTHORIZATION_SUCCESS),
+        (TransactionEventType.CHARGE_REQUEST),
+        (TransactionEventType.CHARGE_SUCCESS),
+    ],
+)
+def test_create_transaction_event_for_transaction_session_success_sets_actions(
+    response_result,
+    transaction_item_generator,
+    transaction_session_response,
+    webhook_app,
+    plugins_manager,
+):
+    # given
+    expected_amount = Decimal("15")
+    response = transaction_session_response.copy()
+    response["result"] = response_result.upper()
+    response["amount"] = expected_amount
+    response["actions"] = ["CANCEL", "CHARGE", "REFUND"]
+
+    transaction = transaction_item_generator()
+    request_event = TransactionEvent.objects.create(
+        transaction=transaction, include_in_calculations=False
+    )
+
+    # when
+    create_transaction_event_for_transaction_session(
+        request_event,
+        webhook_app,
+        manager=plugins_manager,
+        transaction_webhook_response=response,
+    )
+
+    # then
+    transaction.refresh_from_db()
+    assert set(transaction.available_actions) == set(["refund", "charge", "cancel"])
+
+
+@pytest.mark.parametrize(
+    "response_result",
+    [
+        TransactionEventType.AUTHORIZATION_ACTION_REQUIRED,
+        TransactionEventType.CHARGE_ACTION_REQUIRED,
+        TransactionEventType.AUTHORIZATION_FAILURE,
+        TransactionEventType.CHARGE_FAILURE,
+        TransactionEventType.REFUND_FAILURE,
+        TransactionEventType.REFUND_SUCCESS,
+    ],
+)
+def test_create_transaction_event_for_transaction_session_failure_doesnt_set_actions(
+    response_result,
+    transaction_item_generator,
+    transaction_session_response,
+    webhook_app,
+    plugins_manager,
+):
+    # given
+    expected_amount = Decimal("15")
+    response = transaction_session_response.copy()
+    response["result"] = response_result.upper()
+    response["amount"] = expected_amount
+    response["actions"] = ["CANCEL", "CHARGE", "REFUND"]
+    transaction = transaction_item_generator(available_actions=["charge"])
+    request_event = TransactionEvent.objects.create(
+        transaction=transaction,
+        include_in_calculations=False,
+        amount_value=expected_amount,
+        type=TransactionEventType.CHARGE_REQUEST,
+    )
+
+    # when
+    create_transaction_event_for_transaction_session(
+        request_event,
+        webhook_app,
+        manager=plugins_manager,
+        transaction_webhook_response=response,
+    )
+
+    # then
+    transaction.refresh_from_db()
+    assert transaction.available_actions == ["charge"]
