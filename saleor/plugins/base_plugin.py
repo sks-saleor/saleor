@@ -46,7 +46,6 @@ if TYPE_CHECKING:
     from ..core.middleware import Requestor
     from ..core.notify_events import NotifyEventType
     from ..core.taxes import TaxData, TaxType
-    from ..discount import DiscountInfo
     from ..discount.models import Sale, Voucher
     from ..giftcard.models import GiftCard
     from ..invoice.models import Invoice
@@ -248,7 +247,6 @@ class BasePlugin:
             List["CheckoutLineInfo"],
             "CheckoutLineInfo",
             Union["Address", None],
-            Iterable["DiscountInfo"],
             TaxedMoney,
         ],
         TaxedMoney,
@@ -261,7 +259,6 @@ class BasePlugin:
             List["CheckoutLineInfo"],
             "CheckoutLineInfo",
             Union["Address", None],
-            Iterable["DiscountInfo"],
             Any,
         ],
         TaxedMoney,
@@ -276,7 +273,6 @@ class BasePlugin:
             "CheckoutInfo",
             List["CheckoutLineInfo"],
             Union["Address", None],
-            List["DiscountInfo"],
             TaxedMoney,
         ],
         TaxedMoney,
@@ -291,7 +287,20 @@ class BasePlugin:
             "CheckoutInfo",
             List["CheckoutLineInfo"],
             Union["Address", None],
-            List["DiscountInfo"],
+            TaxedMoney,
+        ],
+        TaxedMoney,
+    ]
+
+    # Calculate the subtotal for checkout.
+    #
+    # Overwrite this method if you need to apply specific logic for the calculation
+    # of a checkout subtotal. Return TaxedMoney.
+    calculate_checkout_subtotal: Callable[
+        [
+            "CheckoutInfo",
+            List["CheckoutLineInfo"],
+            Union["Address", None],
             TaxedMoney,
         ],
         TaxedMoney,
@@ -517,7 +526,6 @@ class BasePlugin:
             List["CheckoutLineInfo"],
             "CheckoutLineInfo",
             Union["Address", None],
-            Iterable["DiscountInfo"],
             Decimal,
         ],
         Decimal,
@@ -528,7 +536,6 @@ class BasePlugin:
             "CheckoutInfo",
             Iterable["CheckoutLineInfo"],
             Union["Address", None],
-            Iterable["DiscountInfo"],
             Any,
         ],
         Any,
@@ -729,6 +736,12 @@ class BasePlugin:
     # metadata is changed.
     order_metadata_updated: Callable[["Order", Any], Any]
 
+    # Trigger when orders are imported.
+    #
+    # Overwrite this method if you need to trigger specific logic when an order
+    # is imported.
+    order_bulk_created: Callable[[List["Order"], Any], Any]
+
     # Trigger when page is created.
     #
     # Overwrite this method if you need to trigger specific logic when a page is
@@ -790,7 +803,6 @@ class BasePlugin:
     preprocess_order_creation: Callable[
         [
             "CheckoutInfo",
-            List["DiscountInfo"],
             Union[Iterable["CheckoutLineInfo"], None],
             Any,
         ],

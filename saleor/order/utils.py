@@ -12,7 +12,7 @@ from ..core.prices import quantize_price
 from ..core.taxes import zero_money
 from ..core.tracing import traced_atomic_transaction
 from ..core.weight import zero_weight
-from ..discount import OrderDiscountType
+from ..discount import DiscountType
 from ..discount.models import NotApplicable, OrderDiscount, Voucher, VoucherType
 from ..discount.utils import (
     apply_discount_to_value,
@@ -110,7 +110,7 @@ def update_voucher_discount(func):
 
 
 def get_voucher_discount_assigned_to_order(order: Order):
-    return order.discounts.filter(type=OrderDiscountType.VOUCHER).first()
+    return order.discounts.filter(type=DiscountType.VOUCHER).first()
 
 
 def invalidate_order_prices(order: Order, *, save: bool = False) -> None:
@@ -215,6 +215,7 @@ def create_order_line(
     channel = order.channel
     variant = line_data.variant
     quantity = line_data.quantity
+    price_override = line_data.price_override
 
     product = variant.product
     collections = product.collections.all()
@@ -222,13 +223,23 @@ def create_order_line(
 
     # vouchers are not applied for new lines in unconfirmed/draft orders
     untaxed_unit_price = variant.get_price(
-        product, collections, channel, channel_listing, discounts
+        product,
+        collections,
+        channel,
+        channel_listing,
+        discounts,
+        price_override=price_override,
     )
     if not discounts:
         untaxed_undiscounted_price = untaxed_unit_price
     else:
         untaxed_undiscounted_price = variant.get_price(
-            product, collections, channel, channel_listing, []
+            product,
+            collections,
+            channel,
+            channel_listing,
+            [],
+            price_override=price_override,
         )
     unit_price = TaxedMoney(net=untaxed_unit_price, gross=untaxed_unit_price)
     undiscounted_unit_price = TaxedMoney(
@@ -727,7 +738,7 @@ def get_total_order_discount_excluding_shipping(order: Order) -> Money:
     # The calculation is based on assumption that an order can have only one voucher.
     all_discounts = order.discounts.all()
     if order.voucher and order.voucher.type == VoucherType.SHIPPING:
-        all_discounts = all_discounts.exclude(type=OrderDiscountType.VOUCHER)
+        all_discounts = all_discounts.exclude(type=DiscountType.VOUCHER)
     total_order_discount = Money(
         sum([discount.amount_value for discount in all_discounts]),
         currency=order.currency,
@@ -738,7 +749,7 @@ def get_total_order_discount_excluding_shipping(order: Order) -> Money:
 
 def get_order_discounts(order: Order) -> List[OrderDiscount]:
     """Return all discounts applied to the order by staff user."""
-    return list(order.discounts.filter(type=OrderDiscountType.MANUAL))
+    return list(order.discounts.filter(type=DiscountType.MANUAL))
 
 
 def create_order_discount_for_order(

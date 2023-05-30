@@ -635,6 +635,17 @@ class ProductVariant(SortableModel, ModelWithMetadata, ModelWithExternalReferenc
     def get_global_id(self):
         return graphene.Node.to_global_id("ProductVariant", self.id)
 
+    def get_base_price(
+        self,
+        channel_listing: "ProductVariantChannelListing",
+        price_override: Optional["Decimal"] = None,
+    ):
+        return (
+            channel_listing.price
+            if price_override is None
+            else Money(price_override, channel_listing.currency)
+        )
+
     def get_price(
         self,
         product: Product,
@@ -644,16 +655,13 @@ class ProductVariant(SortableModel, ModelWithMetadata, ModelWithExternalReferenc
         discounts: Optional[Iterable[DiscountInfo]] = None,
         price_override: Optional["Decimal"] = None,
     ) -> "Money":
-        price = (
-            channel_listing.price
-            if price_override is None
-            else Money(price_override, channel_listing.currency)
-        )
+        price = self.get_base_price(channel_listing, price_override)
+        collection_ids = {collection.id for collection in collections}
         return calculate_discounted_price(
             product=product,
             price=price,
             discounts=discounts,
-            collections=collections,
+            collection_ids=collection_ids,
             channel=channel,
             variant_id=self.id,
         )
@@ -769,6 +777,16 @@ class ProductVariantChannelListing(models.Model):
         null=True,
     )
     cost_price = MoneyField(amount_field="cost_price_amount", currency_field="currency")
+
+    discounted_price_amount = models.DecimalField(
+        max_digits=settings.DEFAULT_MAX_DIGITS,
+        decimal_places=settings.DEFAULT_DECIMAL_PLACES,
+        blank=True,
+        null=True,
+    )
+    discounted_price = MoneyField(
+        amount_field="discounted_price_amount", currency_field="currency"
+    )
 
     preorder_quantity_threshold = models.IntegerField(blank=True, null=True)
 
