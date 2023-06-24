@@ -4,17 +4,16 @@ from django.core.exceptions import ValidationError
 from ....checkout.checkout_cleaner import validate_checkout
 from ....checkout.complete_checkout import create_order_from_checkout
 from ....checkout.fetch import fetch_checkout_info, fetch_checkout_lines
-from ....core import analytics
 from ....core.exceptions import GiftCardNotApplicable, InsufficientStock
 from ....discount.models import NotApplicable
 from ....permission.enums import CheckoutPermissions
 from ...app.dataloaders import get_app_promise
 from ...core import ResolveInfo
 from ...core.descriptions import ADDED_IN_32, ADDED_IN_38
-from ...core.doc_category import DOC_CATEGORY_CHECKOUT
+from ...core.doc_category import DOC_CATEGORY_ORDERS
 from ...core.mutations import BaseMutation
 from ...core.types import Error, NonNullList
-from ...meta.mutations import MetadataInput
+from ...meta.inputs import MetadataInput
 from ...order.types import Order
 from ...plugins.dataloaders import get_plugin_manager_promise
 from ..enums import OrderCreateFromCheckoutErrorCode
@@ -38,7 +37,7 @@ class OrderCreateFromCheckoutError(Error):
     )
 
     class Meta:
-        doc_category = DOC_CATEGORY_CHECKOUT
+        doc_category = DOC_CATEGORY_ORDERS
 
 
 class OrderCreateFromCheckout(BaseMutation):
@@ -78,7 +77,7 @@ class OrderCreateFromCheckout(BaseMutation):
             "following permissions: AUTHENTICATED_APP and HANDLE_CHECKOUTS."
             + ADDED_IN_32
         )
-        doc_category = DOC_CATEGORY_CHECKOUT
+        doc_category = DOC_CATEGORY_ORDERS
         object_type = Order
         permissions = (CheckoutPermissions.HANDLE_CHECKOUTS,)
         error_type_class = OrderCreateFromCheckoutError
@@ -122,8 +121,6 @@ class OrderCreateFromCheckout(BaseMutation):
             cls.check_metadata_permissions(info, id, private=True)
             cls.validate_metadata_keys(private_metadata)
 
-        tracking_code = analytics.get_client_id(info.context)
-
         manager = get_plugin_manager_promise(info.context).get()
         checkout_lines, unavailable_variant_pks = fetch_checkout_lines(checkout)
         checkout_info = fetch_checkout_info(checkout, checkout_lines, manager)
@@ -141,7 +138,6 @@ class OrderCreateFromCheckout(BaseMutation):
                 manager=manager,
                 user=user,
                 app=app,
-                tracking_code=tracking_code,
                 delete_checkout=remove_checkout,
                 metadata_list=metadata,
                 private_metadata_list=private_metadata,
