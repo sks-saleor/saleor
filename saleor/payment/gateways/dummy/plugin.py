@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from saleor.payment import TransactionKind
 
 from saleor.plugins.base_plugin import BasePlugin, ConfigurationTypeField
 
@@ -102,7 +103,9 @@ class DummyGatewayPlugin(BasePlugin):
     ) -> "GatewayResponse":
         if not self.active:
             return previous_value
-        return process_payment(payment_information, self._get_gateway_config())
+        _process_payment = process_payment(payment_information, self._get_gateway_config())
+        _process_payment.kind = TransactionKind.ACTION_TO_CONFIRM
+        return _process_payment
 
     def get_client_token(self, token_config: "TokenConfig", previous_value):
         if not self.active:
