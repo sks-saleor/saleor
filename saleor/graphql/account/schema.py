@@ -75,6 +75,7 @@ from .resolvers import (
     resolve_permission_group,
     resolve_permission_groups,
     resolve_staff_users,
+    resolve_stores,
     resolve_user,
 )
 from .sorters import PermissionGroupSortingInput, UserSortingInput
@@ -141,6 +142,13 @@ class AccountQueries(graphene.ObjectType):
         sort_by=UserSortingInput(description="Sort customers."),
         description="List of the shop's customers.",
         permissions=[OrderPermissions.MANAGE_ORDERS, AccountPermissions.MANAGE_USERS],
+        doc_category=DOC_CATEGORY_USERS,
+    )
+    stores = FilterConnectionField(
+        UserCountableConnection,
+        filter=CustomerFilterInput(description="Filtering options for stores."),
+        sort_by=UserSortingInput(description="Sort stores."),
+        description="List of the shop's stores.",
         doc_category=DOC_CATEGORY_USERS,
     )
     permission_groups = FilterConnectionField(
@@ -214,6 +222,12 @@ class AccountQueries(graphene.ObjectType):
     @staticmethod
     def resolve_customers(_root, info: ResolveInfo, **kwargs):
         qs = resolve_customers(info)
+        qs = filter_connection_queryset(qs, kwargs)
+        return create_connection_slice(qs, info, kwargs, UserCountableConnection)
+    
+    @staticmethod
+    def resolve_stores(_root, info: ResolveInfo, **kwargs):
+        qs = resolve_stores(info)
         qs = filter_connection_queryset(qs, kwargs)
         return create_connection_slice(qs, info, kwargs, UserCountableConnection)
 

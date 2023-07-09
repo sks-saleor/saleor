@@ -38,6 +38,11 @@ USER_SEARCH_FIELDS = (
 def resolve_customers(_info):
     return models.User.objects.customers()
 
+def resolve_stores(_info):
+    qs = models.User.objects.customers()
+    qs = qs.filter(metadata__contains={'type': 'shop'})
+    return qs
+
 
 def resolve_permission_group(id):
     return models.Group.objects.filter(id=id).first()
