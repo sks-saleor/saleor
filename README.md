@@ -24,6 +24,8 @@
   <a href="https://twitter.com/getsaleor">Twitter</a>
   <span> | </span>
   <a href="https://github.com/saleor/saleor/discussions">GitHub Discussions</a>
+  <span> | </span>
+  <a href="https://discord.gg/H52JTZAtSH">Discord</a>
 </div>
 
 <div align="center">
@@ -145,10 +147,6 @@ Want to see Saleor in action?
 
 * [View React Storefront](https://demo.saleor.io/)
 * [View Dashboard (admin area)](https://demo.saleor.io/dashboard/)
-
-Or launch the demo on a Heroku instance.
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 Login credentials: `admin@example.com`/`admin`
 

@@ -251,8 +251,6 @@ INSTALLED_APPS = [
     # External apps
     "django_measurement",
     "django_prices",
-    "django_prices_openexchangerates",
-    "django_prices_vatlayer",
     "mptt",
     "django_countries",
     "django_filters",
@@ -407,8 +405,6 @@ DEFAULT_CURRENCY_CODE_LENGTH = 3
 DEFAULT_MAX_EMAIL_DISPLAY_NAME_LENGTH = 78
 
 COUNTRIES_OVERRIDE = {"EU": "European Union"}
-
-OPENEXCHANGERATES_API_KEY = os.environ.get("OPENEXCHANGERATES_API_KEY")
 
 
 def get_host():
@@ -599,6 +595,11 @@ CELERY_BEAT_SCHEDULE = {
     },
     "update-products-search-vectors": {
         "task": "saleor.product.tasks.update_products_search_vector_task",
+        "schedule": timedelta(seconds=20),
+        "options": {"expires": BEAT_UPDATE_SEARCH_EXPIRE_AFTER_SEC},
+    },
+    "update-gift-cards-search-vectors": {
+        "task": "saleor.giftcard.tasks.update_gift_cards_search_vector_task",
         "schedule": timedelta(seconds=20),
         "options": {"expires": BEAT_UPDATE_SEARCH_EXPIRE_AFTER_SEC},
     },
@@ -819,4 +820,14 @@ WEBHOOK_CELERY_QUEUE_NAME = os.environ.get("WEBHOOK_CELERY_QUEUE_NAME", None)
 # Lock time for request password reset mutation per user (seconds)
 RESET_PASSWORD_LOCK_TIME = parse(
     os.environ.get("RESET_PASSWORD_LOCK_TIME", "15 minutes")
+)
+
+# Lock time for request confirmation email mutation per user
+CONFIRMATION_EMAIL_LOCK_TIME = parse(
+    os.environ.get("CONFIRMATION_EMAIL_LOCK_TIME", "15 minutes")
+)
+
+# Time threshold to update user last_login when performing requests with OAUTH token.
+OAUTH_UPDATE_LAST_LOGIN_THRESHOLD = parse(
+    os.environ.get("OAUTH_UPDATE_LAST_LOGIN_THRESHOLD", "15 minutes")
 )

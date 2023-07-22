@@ -7,6 +7,8 @@ from ..core.descriptions import (
     ADDED_IN_312,
     ADDED_IN_313,
     ADDED_IN_314,
+    ADDED_IN_315,
+    DEPRECATED_IN_3X_ENUM_VALUE,
     PREVIEW_FEATURE,
 )
 from ..core.doc_category import DOC_CATEGORY_WEBHOOKS
@@ -33,6 +35,13 @@ order_updated_event_enum_description = (
 
 
 WEBHOOK_EVENT_DESCRIPTION = {
+    WebhookEventAsyncType.ACCOUNT_CONFIRMATION_REQUESTED: (
+        "An account confirmation is requested."
+    ),
+    WebhookEventAsyncType.ACCOUNT_CHANGE_EMAIL_REQUESTED: (
+        "Account email change is requested."
+    ),
+    WebhookEventAsyncType.ACCOUNT_DELETE_REQUESTED: "An account delete is requested.",
     WebhookEventAsyncType.ADDRESS_CREATED: "A new address created.",
     WebhookEventAsyncType.ADDRESS_UPDATED: "An address updated.",
     WebhookEventAsyncType.ADDRESS_DELETED: "An address deleted.",
@@ -179,12 +188,6 @@ WEBHOOK_EVENT_DESCRIPTION = {
     WebhookEventAsyncType.STAFF_CREATED: "A new staff user is created.",
     WebhookEventAsyncType.STAFF_UPDATED: "A staff user is updated.",
     WebhookEventAsyncType.STAFF_DELETED: "A staff user is deleted.",
-    WebhookEventAsyncType.TRANSACTION_ACTION_REQUEST: (
-        "An action requested for transaction."
-        + "\n\nDEPRECATED: this subscription will be removed in Saleor 3.14 "
-        + "(Preview Feature). Use `TRANSACTION_CHARGE_REQUESTED`, "
-        + "`TRANSACTION_REFUND_REQUESTED`, `TRANSACTION_CANCELATION_REQUESTED` instead."
-    ),
     WebhookEventAsyncType.TRANSACTION_ITEM_METADATA_UPDATED: (
         "Transaction item metadata is updated." + ADDED_IN_38
     ),
@@ -202,9 +205,11 @@ WEBHOOK_EVENT_DESCRIPTION = {
     WebhookEventAsyncType.VOUCHER_METADATA_UPDATED: (
         "A voucher metadata is updated." + ADDED_IN_38
     ),
-    WebhookEventAsyncType.ANY: "All the events.",
+    WebhookEventAsyncType.ANY: "All the events." + DEPRECATED_IN_3X_ENUM_VALUE,
     WebhookEventAsyncType.OBSERVABILITY: "An observability event is created.",
     WebhookEventAsyncType.THUMBNAIL_CREATED: "A thumbnail is created." + ADDED_IN_312,
+    WebhookEventAsyncType.SHOP_METADATA_UPDATED: "Shop metadata is updated."
+    + ADDED_IN_315,
     WebhookEventSyncType.SHIPPING_LIST_METHODS_FOR_CHECKOUT: (
         "Fetch external shipping methods for checkout."
     ),

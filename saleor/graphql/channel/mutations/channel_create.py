@@ -5,6 +5,7 @@ from ....channel import models
 from ....core.tracing import traced_atomic_transaction
 from ....permission.enums import ChannelPermissions
 from ....tax.models import TaxConfiguration
+from ....webhook.event_types import WebhookEventAsyncType
 from ...account.enums import CountryCodeEnum
 from ...core import ResolveInfo
 from ...core.descriptions import (
@@ -14,6 +15,7 @@ from ...core.descriptions import (
     ADDED_IN_312,
     ADDED_IN_313,
     ADDED_IN_314,
+    ADDED_IN_315,
     PREVIEW_FEATURE,
 )
 from ...core.doc_category import (
@@ -24,6 +26,9 @@ from ...core.doc_category import (
 from ...core.mutations import ModelMutation
 from ...core.scalars import Day, Minute
 from ...core.types import BaseInputObjectType, ChannelError, NonNullList
+from ...core.types import common as common_types
+from ...core.utils import WebhookEventInfo
+from ...meta.inputs import MetadataInput
 from ...plugins.dataloaders import get_plugin_manager_promise
 from ..enums import (
     AllocationStrategyEnum,
@@ -94,6 +99,13 @@ class OrderSettingsInput(BaseInputObjectType):
             "requested action for the transaction." + ADDED_IN_313 + PREVIEW_FEATURE
         ),
     )
+    allow_unpaid_orders = graphene.Boolean(
+        required=False,
+        description=(
+            "Determine if it is possible to place unpdaid order by calling "
+            "`checkoutComplete` mutation." + ADDED_IN_315 + PREVIEW_FEATURE
+        ),
+    )
 
     class Meta:
         doc_category = DOC_CATEGORY_ORDERS
@@ -121,6 +133,16 @@ class ChannelInput(BaseInputObjectType):
     order_settings = graphene.Field(
         OrderSettingsInput,
         description="The channel order settings" + ADDED_IN_312,
+        required=False,
+    )
+    metadata = common_types.NonNullList(
+        MetadataInput,
+        description="Channel public metadata." + ADDED_IN_315,
+        required=False,
+    )
+    private_metadata = common_types.NonNullList(
+        MetadataInput,
+        description="Channel private metadata." + ADDED_IN_315,
         required=False,
     )
 
@@ -160,6 +182,14 @@ class ChannelCreate(ModelMutation):
         permissions = (ChannelPermissions.MANAGE_CHANNELS,)
         error_type_class = ChannelError
         error_type_field = "channel_errors"
+        webhook_events_info = [
+            WebhookEventInfo(
+                type=WebhookEventAsyncType.CHANNEL_CREATED,
+                description="A channel was created.",
+            ),
+        ]
+        support_meta_field = True
+        support_private_meta_field = True
 
     @classmethod
     def get_type_for_model(cls):
@@ -212,6 +242,10 @@ class ChannelCreate(ModelMutation):
                 cleaned_input[
                     "default_transaction_flow_strategy"
                 ] = default_transaction_strategy
+
+            allow_unpaid_orders = order_settings.get("allow_unpaid_orders")
+            if allow_unpaid_orders is not None:
+                cleaned_input["allow_unpaid_orders"] = allow_unpaid_orders
 
         return cleaned_input
 
