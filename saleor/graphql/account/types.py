@@ -10,6 +10,7 @@ from promise import Promise
 from ...account import models
 from ...checkout.utils import get_user_checkout
 from ...core.exceptions import PermissionDenied
+from ...graphql.meta.inputs import MetadataInput
 from ...order import OrderStatus
 from ...permission.auth_filters import AuthorizationFilters
 from ...permission.enums import AccountPermissions, AppPermission, OrderPermissions
@@ -30,6 +31,7 @@ from ..core.descriptions import (
     ADDED_IN_38,
     ADDED_IN_310,
     ADDED_IN_314,
+    ADDED_IN_315,
     DEPRECATED_IN_3X_FIELD,
     PREVIEW_FEATURE,
 )
@@ -83,6 +85,12 @@ class AddressInput(BaseInputObjectType):
             "Phone numbers are validated with Google's "
             "[libphonenumber](https://github.com/google/libphonenumber) library."
         )
+    )
+
+    metadata = graphene.List(
+        graphene.NonNull(MetadataInput),
+        description="Address public metadata." + ADDED_IN_315,
+        required=False,
     )
 
 
@@ -300,6 +308,10 @@ class User(ModelObjectType[models.User]):
     )
     is_active = graphene.Boolean(
         required=True, description="Determine if the user is active."
+    )
+    is_confirmed = graphene.Boolean(
+        required=True,
+        description="Determines if user has confirmed email." + ADDED_IN_315,
     )
     addresses = NonNullList(
         Address, description="List of all user's addresses.", required=True
