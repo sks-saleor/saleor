@@ -25,14 +25,14 @@ class UserAvatarUpdate(BaseMutation):
 
     class Meta:
         description = (
-            "Create a user avatar. Only for staff members. This mutation must be sent "
+            "Create a user avatar. Only for user authenticated. This mutation must be sent "
             "as a `multipart` request. More detailed specs of the upload format can be "
             "found here: https://github.com/jaydenseric/graphql-multipart-request-spec"
         )
         doc_category = DOC_CATEGORY_USERS
         error_type_class = AccountError
         error_type_field = "account_errors"
-        permissions = (AuthorizationFilters.AUTHENTICATED_STAFF_USER,)
+        permissions = (AuthorizationFilters.AUTHENTICATED_USER,)
 
     @classmethod
     def perform_mutation(cls, _root, info: ResolveInfo, /, **data):

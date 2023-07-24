@@ -58,7 +58,8 @@ def filter_attributes_by_product_types(qs, field, value, requestor, channel_slug
     elif field == "in_collection":
         _type, collection_id = from_global_id_or_error(value, "Collection")
         product_qs = product_qs.filter(collections__id=collection_id)
-
+    elif field == "in_product_type":
+        pass
     else:
         raise NotImplementedError(f"Filtering by {field} is unsupported")
 
@@ -104,6 +105,7 @@ class AttributeFilter(MetadataFilterBase):
 
     in_collection = GlobalIDFilter(method="filter_in_collection")
     in_category = GlobalIDFilter(method="filter_in_category")
+    in_product_type = GlobalIDFilter(method="filter_in_category")
     slugs = ListObjectTypeFilter(input_class=graphene.String, method=filter_slug_list)
 
     class Meta:
@@ -130,6 +132,7 @@ class AttributeFilter(MetadataFilterBase):
         return filter_attributes_by_product_types(
             qs, name, value, requestor, channel_slug
         )
+        
 
 
 class AttributeFilterInput(ChannelFilterInputObjectType):
@@ -248,6 +251,7 @@ class AttributeWhere(MetadataFilterBase):
     )
     in_collection = GlobalIDFilter(method="filter_in_collection")
     in_category = GlobalIDFilter(method="filter_in_category")
+    in_product_type = GlobalIDFilter(method="filter_in_category")
 
     class Meta:
         model = Attribute
