@@ -727,7 +727,7 @@ for entry_point in installed_plugins:
             INSTALLED_APPS.append(entry_point.name)
         EXTERNAL_PLUGINS.append(plugin_path)
 
-PLUGINS = ['saleor.plugins.anonymize.plugin.AnonymizePlugin'] + BUILTIN_PLUGINS + EXTERNAL_PLUGINS
+PLUGINS = BUILTIN_PLUGINS + EXTERNAL_PLUGINS
 
 # Timeouts for webhook requests. Sync webhooks (eg. payment webhook) need more time
 # for getting response from the server.
