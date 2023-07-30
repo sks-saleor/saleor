@@ -102,7 +102,14 @@ DATABASES = {
     ),
 }
 
-DATABASE_ROUTERS = ["saleor.core.db_routers.PrimaryReplicaRouter"]
+# custom database settings for tenant_schemas
+DATABASES[DATABASE_CONNECTION_DEFAULT_NAME]['ENGINE'] = 'django_tenants.postgresql_backend'
+DATABASES[DATABASE_CONNECTION_REPLICA_NAME]['ENGINE'] = 'django_tenants.postgresql_backend'
+print('DATABASES::: ',DATABASES)
+DATABASE_ROUTERS = [
+    "django_tenants.routers.TenantSyncRouter",
+    "saleor.core.db_routers.PrimaryReplicaRouter"
+]
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
@@ -206,6 +213,8 @@ JWT_MANAGER_PATH = os.environ.get(
 )
 
 MIDDLEWARE = [
+    "django_tenants.middleware.main.TenantMainMiddleware",
+    
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
     "saleor.core.middleware.jwt_refresh_token_middleware",
@@ -255,7 +264,14 @@ INSTALLED_APPS = [
     "django_countries",
     "django_filters",
     "phonenumber_field",
+    
+    # SKS custom apps
+    "django_tenants",
+    "saleor.saas",
 ]
+
+SHARED_APPS = INSTALLED_APPS
+TENANT_APPS = INSTALLED_APPS
 
 ENABLE_DJANGO_EXTENSIONS = get_bool_from_env("ENABLE_DJANGO_EXTENSIONS", False)
 if ENABLE_DJANGO_EXTENSIONS:
@@ -428,7 +444,6 @@ ALLOWED_HOSTS = get_list(os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1"))
 ALLOWED_GRAPHQL_ORIGINS: List[str] = get_list(
     os.environ.get("ALLOWED_GRAPHQL_ORIGINS", "*")
 )
-
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Amazon S3 configuration
@@ -831,3 +846,8 @@ CONFIRMATION_EMAIL_LOCK_TIME = parse(
 OAUTH_UPDATE_LAST_LOGIN_THRESHOLD = parse(
     os.environ.get("OAUTH_UPDATE_LAST_LOGIN_THRESHOLD", "15 minutes")
 )
+
+
+# SKS APP CONFIGURATION
+TENANT_MODEL = "saas.Client"
+TENANT_DOMAIN_MODEL = "saas.Domain"

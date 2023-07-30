@@ -4,7 +4,7 @@ import os
 from celery import Celery
 from celery.signals import setup_logging
 from django.conf import settings
-
+from tenant_schemas_celery.app import CeleryApp as TenantAwareCeleryApp
 from .plugins import discover_plugins_modules
 
 CELERY_LOGGER_NAME = "celery"
@@ -23,7 +23,7 @@ def setup_celery_logging(loglevel=None, **kwargs):
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "saleor.settings")
 
-app = Celery("saleor")
+app = TenantAwareCeleryApp("saleor")
 
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()

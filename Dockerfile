@@ -9,8 +9,10 @@ RUN apt-get -y update \
 
 # Install Python dependencies
 COPY requirements_dev.txt /app/
+COPY requirements_sks.txt /app/
 WORKDIR /app
 RUN pip install -r requirements_dev.txt
+RUN pip install -r requirements_sks.txt
 
 ### Final image
 FROM python:3.9-slim
