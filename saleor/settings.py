@@ -105,11 +105,11 @@ DATABASES = {
 # custom database settings for tenant_schemas
 DATABASES[DATABASE_CONNECTION_DEFAULT_NAME]['ENGINE'] = 'django_tenants.postgresql_backend'
 DATABASES[DATABASE_CONNECTION_REPLICA_NAME]['ENGINE'] = 'django_tenants.postgresql_backend'
-print('DATABASES::: ',DATABASES)
 DATABASE_ROUTERS = [
+    "saleor.core.db_routers.PrimaryReplicaRouter",
     "django_tenants.routers.TenantSyncRouter",
-    "saleor.core.db_routers.PrimaryReplicaRouter"
 ]
+EXTRA_SET_TENANT_METHOD_PATH = 'saleor.saas.set_tenant_utils.extra_set_tenant_stuff'
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
@@ -213,7 +213,7 @@ JWT_MANAGER_PATH = os.environ.get(
 )
 
 MIDDLEWARE = [
-    "django_tenants.middleware.main.TenantMainMiddleware",
+    "saleor.saas.middleware.main.TenantMainMiddleware",
     
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -782,7 +782,11 @@ if "JAEGER_AGENT_HOST" in os.environ:
 REDIS_URL = os.environ.get("REDIS_URL")
 if REDIS_URL:
     CACHE_URL = os.environ.setdefault("CACHE_URL", REDIS_URL)
-CACHES = {"default": django_cache_url.config()}
+CACHES = {"default": {
+    **django_cache_url.config(),
+    'KEY_FUNCTION': 'django_tenants.cache.make_key',
+    'REVERSE_KEY_FUNCTION': 'django_tenants.cache.reverse_key',
+}}
 CACHES["default"]["TIMEOUT"] = parse(os.environ.get("CACHE_TIMEOUT", "7 days"))
 
 JWT_EXPIRE = True
