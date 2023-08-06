@@ -13,7 +13,8 @@ from django.core import exceptions
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DEFAULT_DB_ALIAS
 from django.utils.text import capfirst
-
+from django.db import connection
+from django_tenants.utils import get_tenant_model
 
 class NotRunningInTTYException(Exception):
     pass
@@ -57,6 +58,8 @@ class Command(BaseCommand):
             default=DEFAULT_DB_ALIAS,
             help='Specifies the database to use. Default is "default".',
         )
+        parser.add_argument("-s", "--schema", dest="schema_name")
+        
         for field_name in self.UserModel.REQUIRED_FIELDS:
             field = self.UserModel._meta.get_field(field_name)
             if field.many_to_many:
@@ -86,8 +89,19 @@ class Command(BaseCommand):
     def execute(self, *args, **options):
         self.stdin = options.get("stdin", sys.stdin)  # Used for testing
         return super().execute(*args, **options)
+    
+    def get_tenant(self, hostname):
+        tenant = get_tenant_model().objects.get(schema_name=hostname)
+        return tenant
+    
+    def set_tenant(self, schema_name):
+        tenant = self.get_tenant(schema_name)
+        connection.set_tenant(tenant)
 
     def handle(self, *args, **options):
+        schema_name = options['schema_name']
+        self.set_tenant(schema_name)
+        
         username = options[self.UserModel.USERNAME_FIELD]
         database = options["database"]
         user_data = {}

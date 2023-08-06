@@ -110,6 +110,9 @@ DATABASE_ROUTERS = [
     "django_tenants.routers.TenantSyncRouter",
 ]
 EXTRA_SET_TENANT_METHOD_PATH = 'saleor.saas.set_tenant_utils.extra_set_tenant_stuff'
+TENANT_BASE_SCHEMA = os.environ.get('TENANT_BASE_SCHEMA', None)
+TENANT_CREATION_FAKES_MIGRATIONS = TENANT_BASE_SCHEMA is not None
+
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
@@ -200,6 +203,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 PASSWORD_HASHERS = [
     *global_settings.PASSWORD_HASHERS,
     "django.contrib.auth.hashers.BCryptPasswordHasher",
+    "saleor.core.hashers.SHA512Base64PBKDF2PasswordHasher",
 ]
 
 if not SECRET_KEY and DEBUG:

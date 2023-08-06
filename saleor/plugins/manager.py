@@ -1052,6 +1052,10 @@ class PluginsManager(PaymentInterface):
             "transaction_item_metadata_updated", default_value, transaction_item
         )
 
+    def account_confirmed(self, user: "User"):
+        default_value = None
+        return self.__run_method_on_plugins("account_confirmed", default_value, user)
+
     def account_confirmation_requested(
         self, user: "User", channel_slug: str, token: str, redirect_url: Optional[str]
     ):
@@ -1084,6 +1088,34 @@ class PluginsManager(PaymentInterface):
             new_email=new_email,
         )
 
+    def account_email_changed(
+        self,
+        user: "User",
+    ):
+        default_value = None
+        return self.__run_method_on_plugins(
+            "account_email_changed",
+            default_value,
+            user,
+        )
+
+    def account_set_password_requested(
+        self,
+        user: "User",
+        channel_slug: str,
+        token: str,
+        redirect_url: str,
+    ):
+        default_value = None
+        return self.__run_method_on_plugins(
+            "account_set_password_requested",
+            default_value,
+            user,
+            channel_slug,
+            token=token,
+            redirect_url=redirect_url,
+        )
+
     def account_delete_requested(
         self, user: "User", channel_slug: str, token: str, redirect_url: str
     ):
@@ -1096,6 +1128,10 @@ class PluginsManager(PaymentInterface):
             token=token,
             redirect_url=redirect_url,
         )
+
+    def account_deleted(self, user: "User"):
+        default_value = None
+        return self.__run_method_on_plugins("account_deleted", default_value, user)
 
     def address_created(self, address: "Address"):
         default_value = None
@@ -1189,6 +1225,12 @@ class PluginsManager(PaymentInterface):
         default_value = None
         return self.__run_method_on_plugins(
             "channel_status_changed", default_value, channel
+        )
+
+    def channel_metadata_updated(self, channel: "Channel"):
+        default_value = None
+        return self.__run_method_on_plugins(
+            "channel_metadata_updated", default_value, channel
         )
 
     def gift_card_created(self, gift_card: "GiftCard"):
@@ -1314,6 +1356,19 @@ class PluginsManager(PaymentInterface):
     def staff_deleted(self, staff_user: "User"):
         default_value = None
         return self.__run_method_on_plugins("staff_deleted", default_value, staff_user)
+
+    def staff_set_password_requested(
+        self, user: "User", channel_slug: str, token: str, redirect_url: str
+    ):
+        default_value = None
+        return self.__run_method_on_plugins(
+            "staff_set_password_requested",
+            default_value,
+            user,
+            channel_slug,
+            token=token,
+            redirect_url=redirect_url,
+        )
 
     def thumbnail_created(
         self,
